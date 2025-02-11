@@ -5,9 +5,6 @@ FROM nginx:latest
 COPY nginx.conf /etc/nginx/nginx.conf
 
 # 将静态文件复制到容器中
-COPY . /usr/share/nginx/html
+COPY ./ /usr/share/nginx/html
 # 暴露80端口
 EXPOSE 80
-
-# 启动Nginx服务
-CMD ["nginx", "-g", "daemon off;"]

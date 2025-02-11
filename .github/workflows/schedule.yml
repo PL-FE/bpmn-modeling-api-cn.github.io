@@ -1,0 +1,35 @@
+name: CI/CD
+# 触发条件为 push
+on: [push] # 执行时机的
+# 任务
+jobs:
+  test:
+    # 运行的环境
+    runs-on: ubuntu-latest
+    # 步骤
+    steps:
+      - uses: actions/checkout@v2 # git pull
+      - name: Use Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: 20
+      - name: 打包镜像, 上传 Docker Hub
+        run: |
+          docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }} registry.cn-hangzhou.aliyuncs.com
+          docker build -t bpmn-doc-example-image  .
+          docker tag bpmn-doc-example-image registry.cn-hangzhou.aliyuncs.com/pengliang/bpmn-doc-example:latest
+          docker push registry.cn-hangzhou.aliyuncs.com/pengliang/bpmn-doc-example:latest
+
+      - name: 登录服务器, 执行脚本
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          script: |
+            docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }} registry.cn-hangzhou.aliyuncs.com
+            docker stop bpmn-doc-example || true
+            docker rm bpmn-doc-example || true
+            docker rmi registry.cn-hangzhou.aliyuncs.com/pengliang/bpmn-doc-example:latest || true
+            docker pull registry.cn-hangzhou.aliyuncs.com/pengliang/bpmn-doc-example:latest
+            docker run -d -p 10002:80 --name bpmn-doc-example registry.cn-hangzhou.aliyuncs.com/pengliang/bpmn-doc-example:latest
